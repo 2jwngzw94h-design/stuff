@@ -1,0 +1,34 @@
+{
+  "@context": "http://iiif.io/api/presentation/3/context.json",
+  "id": "https://example.org/iiif/collection/top",
+  "type": "Collection",
+  "label": {
+    "fr": ["Collection de test – Agrégation de manifests"]
+  },
+  "summary": {
+    "fr": ["Collection regroupant trois ressources IIIF provenant de la Bodleian, de la BnF (Gallica) et de Paris Musées."]
+  },
+  "items": [
+    {
+      "id": "https://iiif.bodleian.ox.ac.uk/iiif/manifest/e32a277e-91e2-4a6d-8ba6-cc4bad230410.json",
+      "type": "Manifest",
+      "label": {
+        "en": ["Bodleian Library – Manuscript"]
+      }
+    },
+    {
+      "id": "https://gallica.bnf.fr/iiif/ark:/12148/btv1b10022508f/manifest.json",
+      "type": "Manifest",
+      "label": {
+        "fr": ["BnF Gallica – Document patrimonial"]
+      }
+    },
+    {
+      "id": "https://apicollections.parismusees.paris.fr/iiif/160009707/manifest",
+      "type": "Manifest",
+      "label": {
+        "fr": ["Paris Musées – Objet de collection"]
+      }
+    }
+  ]
+}
