@@ -27,17 +27,43 @@ function buildQuery(filters) {
   return params;
 }
 
+function extractOptionsFromRecords(records, fieldName) {
+  const values = records
+    .map((record) => record?.fields?.[fieldName])
+    .flat()
+    .filter(Boolean)
+    .map((value) => String(value).trim())
+    .filter(Boolean);
+
+  return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b, 'fr'));
+}
+
+async function fetchRecordsForFallback() {
+  // Étape clé: fallback si facettes vides, en lisant directement un échantillon de notices.
+  const params = new URLSearchParams({
+    dataset: DATASET,
+    rows: String(MAX_ROWS),
+  });
+  params.append('refine.presence_image', 'true');
+
+  const response = await fetch(`${API_BASE}?${params.toString()}`);
+  if (!response.ok) return [];
+
+  const data = await response.json();
+  return (data.records || []).filter(hasPresenceImage);
+}
+
 export async function fetchFacetOptions() {
-  // Étape clé: charger uniquement les facettes nécessaires à l'étape 1.
+  // Étape clé: charger les facettes nécessaires à l'étape 1.
   const params = new URLSearchParams({
     dataset: DATASET,
     rows: '0',
   });
 
-  params.append('refine.presence_image', 'true');
-
+  // On ne filtre pas ici sur presence_image pour éviter de vider les facettes selon les comportements API.
   ['domaine', 'materiaux_techniques'].forEach((field) => {
     params.append('facet', field);
+    params.append('facet.limit', '200');
   });
 
   const response = await fetch(`${API_BASE}?${params.toString()}`);
@@ -48,10 +74,24 @@ export async function fetchFacetOptions() {
   const data = await response.json();
   const facets = data.facet_groups || [];
 
+  let domaine = facets.find((f) => f.name === 'domaine')?.facets?.map((x) => x.name) || [];
+  let materiaux =
+    facets.find((f) => f.name === 'materiaux_techniques')?.facets?.map((x) => x.name) || [];
+
+  // Étape clé: fallback robuste si les facettes reviennent vides.
+  if (!domaine.length || !materiaux.length) {
+    const fallbackRecords = await fetchRecordsForFallback();
+    if (!domaine.length) {
+      domaine = extractOptionsFromRecords(fallbackRecords, 'domaine');
+    }
+    if (!materiaux.length) {
+      materiaux = extractOptionsFromRecords(fallbackRecords, 'materiaux_techniques');
+    }
+  }
+
   return {
-    domaine: facets.find((f) => f.name === 'domaine')?.facets?.map((x) => x.name) || [],
-    materiaux_techniques:
-      facets.find((f) => f.name === 'materiaux_techniques')?.facets?.map((x) => x.name) || [],
+    domaine,
+    materiaux_techniques: materiaux,
   };
 }
 
