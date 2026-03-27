@@ -2,13 +2,11 @@
 export const state = {
   filters: {
     lieu_conservation: [],
-    domaine: [],
-    materiaux_techniques: [],
+    domaine_materiaux: [],
   },
   options: {
     lieu_conservation: [],
-    domaine: [],
-    materiaux_techniques: [],
+    domaine_materiaux: [],
   },
   results: [],
   isLoading: false,

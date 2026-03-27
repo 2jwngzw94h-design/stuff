@@ -50,6 +50,7 @@ export function renderApp({
   const filterContent = document.createElement('div');
   filterContent.className = 'panel__content';
 
+  // Étape clé: simplifier la recherche avec 2 filtres uniquement (lieu + domaine/matériaux).
   filterContent.append(
     MultiSelect({
       label: 'Lieu de conservation',
@@ -58,16 +59,10 @@ export function renderApp({
       onChange: (values) => onFilterChange('lieu_conservation', values),
     }),
     MultiSelect({
-      label: 'Domaine',
-      options: state.options.domaine,
-      selectedValues: state.filters.domaine,
-      onChange: (values) => onFilterChange('domaine', values),
-    }),
-    MultiSelect({
-      label: 'Matériaux / techniques',
-      options: state.options.materiaux_techniques,
-      selectedValues: state.filters.materiaux_techniques,
-      onChange: (values) => onFilterChange('materiaux_techniques', values),
+      label: 'Domaine + matériaux / techniques',
+      options: state.options.domaine_materiaux,
+      selectedValues: state.filters.domaine_materiaux,
+      onChange: (values) => onFilterChange('domaine_materiaux', values),
     }),
     Button({ label: 'Rechercher', disabled: state.isLoading, onClick: onSearch })
   );

@@ -40,8 +40,8 @@ async function handleSearch() {
       collectionManifest: validManifestUrls.length ? collectionManifest : null,
       isLoading: false,
       error:
-        validManifestUrls.length === 0
-          ? 'Résultats trouvés, mais aucun manifest IIIF valide détecté.'
+        validManifestUrls.length === 0 && records.length > 0
+          ? 'Résultats API chargés, mais aucun manifest IIIF valide détecté.'
           : null,
     });
   } catch (error) {
@@ -72,16 +72,30 @@ function handleExport() {
 }
 
 async function bootstrap() {
-  // Étape clé: initialiser les options de filtres puis démarrer les abonnements UI.
+  // Étape clé: initialiser les options de filtres, puis précharger une première page de résultats API.
   setState({ isLoading: true, error: null });
 
   try {
     const options = await fetchFacetOptions();
-    setState({ options, isLoading: false });
+    setState({ options });
+  } catch {
+    // Étape clé: fallback gracieux pour ne pas bloquer l'affichage des résultats si les facettes échouent.
+    setState({
+      options: {
+        lieu_conservation: [],
+        domaine_materiaux: [],
+      },
+    });
+  }
+
+  try {
+    const records = await searchWorks(state.filters);
+    setState({ isLoading: false, results: records, error: null });
   } catch (error) {
     setState({
       isLoading: false,
-      error: error.message || 'Impossible de charger les filtres.',
+      error: error.message || 'Impossible de charger les résultats API.',
+      results: [],
     });
   }
 }
