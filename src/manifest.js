@@ -1,61 +1,47 @@
-function buildCandidateManifestUrls(record) {
+function getNoticeId(record) {
   const fields = record.fields || {};
-  const candidates = [];
-
-  // Étape clé: récupérer les URLs IIIF existantes exposées par les champs Joconde lorsque disponibles.
-  [fields.manifest, fields.manifest_url, fields.iiif_manifest, fields.iiif_url]
+  const candidates = [fields.ref, fields.reference, fields.id, fields.identifiant, record.recordid]
     .flat()
     .filter(Boolean)
-    .forEach((value) => candidates.push(value));
+    .map((value) => String(value).trim());
 
-  const rawIds = [
-    fields.ref,
-    fields.reference,
-    fields.id,
-    fields.identifiant,
-    fields.cote,
-    record.recordid,
-  ]
-    .flat()
+  return candidates.find((value) => value.length > 0) || null;
+}
+
+function getRecordLabel(record) {
+  const fields = record.fields || {};
+  return fields.titre || fields.denomination || `Notice Joconde ${getNoticeId(record) || ''}`.trim();
+}
+
+function buildManifestUrlFromNoticeId(noticeId) {
+  // Étape clé: construire l'URL de manifest IIIF à partir de l'identifiant Joconde.
+  return `https://api-popcorn.stg.cloud.culture.fr/notices/joconde/${encodeURIComponent(
+    noticeId
+  )}/iiif/manifest`;
+}
+
+export function buildCollectionItemsFromRecords(records) {
+  // Étape clé: transformer chaque notice sélectionnée en item IIIF Manifest avec label FR.
+  return records
+    .map((record) => {
+      const noticeId = getNoticeId(record);
+      if (!noticeId) return null;
+
+      return {
+        id: buildManifestUrlFromNoticeId(noticeId),
+        type: 'Manifest',
+        label: {
+          fr: [getRecordLabel(record)],
+        },
+      };
+    })
     .filter(Boolean);
-
-  // Étape clé: construire des URLs IIIF de secours à partir des identifiants Joconde détectés.
-  rawIds.forEach((idValue) => {
-    const cleaned = String(idValue).trim();
-    if (!cleaned) return;
-    candidates.push(`https://pop.culture.gouv.fr/notice/joconde/${encodeURIComponent(cleaned)}/manifest`);
-  });
-
-  return Array.from(new Set(candidates)).filter((url) => url.startsWith('http'));
 }
 
-async function isManifestValid(url) {
-  try {
-    const response = await fetch(url, { method: 'GET' });
-    if (!response.ok) return false;
-    const json = await response.json();
-    return json.type === 'Manifest' || json['@type'] === 'sc:Manifest';
-  } catch {
-    return false;
-  }
-}
+export function buildCollectionManifestFromRecords(records) {
+  // Étape clé: générer un manifest IIIF Presentation 3 de type Collection avec items construits.
+  const items = buildCollectionItemsFromRecords(records);
 
-export async function extractValidManifestUrls(records) {
-  // Étape clé: vérifier les manifests un par un et ne garder que ceux valides pour le viewer.
-  const candidates = records.flatMap(buildCandidateManifestUrls);
-  const uniqueCandidates = Array.from(new Set(candidates));
-
-  const checks = await Promise.allSettled(
-    uniqueCandidates.map(async (url) => ((await isManifestValid(url)) ? url : null))
-  );
-
-  return checks
-    .filter((result) => result.status === 'fulfilled' && result.value)
-    .map((result) => result.value);
-}
-
-export function buildCollectionManifest(manifestUrls) {
-  // Étape clé: générer un manifest IIIF Presentation 3 de type Collection.
   return {
     '@context': 'http://iiif.io/api/presentation/3/context.json',
     id: `urn:uuid:joconde-collection-${Date.now()}`,
@@ -65,11 +51,8 @@ export function buildCollectionManifest(manifestUrls) {
       en: ['Joconde Collection'],
     },
     summary: {
-      fr: ['Collection générée dynamiquement depuis l’API Joconde.'],
+      fr: ['Collection générée dynamiquement depuis une sélection de notices Joconde.'],
     },
-    items: manifestUrls.map((url) => ({
-      id: url,
-      type: 'Manifest',
-    })),
+    items,
   };
 }

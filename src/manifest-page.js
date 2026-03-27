@@ -1,4 +1,4 @@
-import { buildCollectionManifest, extractValidManifestUrls } from './manifest.js';
+import { buildCollectionManifestFromRecords } from './manifest.js';
 import { renderMirador } from './mirador.js';
 import { Button } from './components/Button.js';
 import { Spinner } from './components/Spinner.js';
@@ -91,13 +91,12 @@ async function bootstrapPage2() {
     return;
   }
 
-  // Étape clé: générer la collection depuis les manifests valides des œuvres sélectionnées.
+  // Étape clé: construire directement la collection à partir des IDs Joconde des notices sélectionnées.
   step3Content.append(Spinner());
 
   let collectionManifest = null;
   try {
-    const validManifestUrls = await extractValidManifestUrls(selectedRecords);
-    collectionManifest = buildCollectionManifest(validManifestUrls);
+    collectionManifest = buildCollectionManifestFromRecords(selectedRecords);
     step3Content.innerHTML = '';
 
     const pre = document.createElement('pre');
@@ -117,7 +116,7 @@ async function bootstrapPage2() {
     Button({ label: 'Retour page 1', onClick: () => (window.location.href = 'index.html') }),
     Button({
       label: 'Ouvrir dans Mirador',
-      disabled: !collectionManifest,
+      disabled: !collectionManifest || !collectionManifest.items.length,
       onClick: () => renderMirador(collectionManifest),
     })
   );
