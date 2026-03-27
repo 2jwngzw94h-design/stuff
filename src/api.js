@@ -4,6 +4,7 @@ const MAX_ROWS = 50;
 
 function buildQuery(filters) {
   // Étape clé: construire une requête refine.* uniquement avec domaine + matériaux/techniques.
+  // Étape clé: construire une requête refine.* avec des blocs distincts domaine et matériaux/techniques.
   const params = new URLSearchParams({
     dataset: DATASET,
     rows: String(MAX_ROWS),
