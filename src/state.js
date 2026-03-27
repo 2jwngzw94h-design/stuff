@@ -1,14 +1,12 @@
-// État global centralisé pour piloter un parcours en 3 étapes.
+// État global centralisé pour piloter le parcours page 1 (étape 1 et étape 2).
 export const state = {
   currentStep: 1,
   isAnimatingStep: false,
   filters: {
-    lieu_conservation: [],
     domaine: [],
     materiaux_techniques: [],
   },
   options: {
-    lieu_conservation: [],
     domaine: [],
     materiaux_techniques: [],
   },
@@ -16,7 +14,6 @@ export const state = {
   selectedRecordIds: [],
   isLoading: false,
   error: null,
-  collectionManifest: null,
 };
 
 const subscribers = new Set();

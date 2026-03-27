@@ -3,14 +3,11 @@ const DATASET = 'base-joconde-extrait';
 const MAX_ROWS = 50;
 
 function buildQuery(filters) {
+  // Étape clé: construire une requête refine.* uniquement avec domaine + matériaux/techniques.
   // Étape clé: construire une requête refine.* avec des blocs distincts domaine et matériaux/techniques.
   const params = new URLSearchParams({
     dataset: DATASET,
     rows: String(MAX_ROWS),
-  });
-
-  (filters.lieu_conservation || []).forEach((value) => {
-    params.append('refine.lieu_conservation', value);
   });
 
   (filters.domaine || []).forEach((value) => {
@@ -25,13 +22,13 @@ function buildQuery(filters) {
 }
 
 export async function fetchFacetOptions() {
-  // Étape clé: charger les 3 facettes nécessaires au formulaire de recherche étape 1.
+  // Étape clé: charger uniquement les facettes nécessaires à l'étape 1.
   const params = new URLSearchParams({
     dataset: DATASET,
     rows: '0',
   });
 
-  ['lieu_conservation', 'domaine', 'materiaux_techniques'].forEach((field) => {
+  ['domaine', 'materiaux_techniques'].forEach((field) => {
     params.append('facet', field);
   });
 
@@ -44,8 +41,6 @@ export async function fetchFacetOptions() {
   const facets = data.facet_groups || [];
 
   return {
-    lieu_conservation:
-      facets.find((f) => f.name === 'lieu_conservation')?.facets?.map((x) => x.name) || [],
     domaine: facets.find((f) => f.name === 'domaine')?.facets?.map((x) => x.name) || [],
     materiaux_techniques:
       facets.find((f) => f.name === 'materiaux_techniques')?.facets?.map((x) => x.name) || [],

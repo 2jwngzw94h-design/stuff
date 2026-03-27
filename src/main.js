@@ -1,7 +1,5 @@
 import { fetchFacetOptions, searchWorks } from './api.js';
 import { state, setFilter, setState, subscribe } from './state.js';
-import { buildCollectionManifest, extractValidManifestUrls } from './manifest.js';
-import { renderMirador } from './mirador.js';
 import { renderApp } from './ui.js';
 
 const appRoot = document.getElementById('app');
@@ -14,19 +12,11 @@ function rerender() {
     onToggleRecord: handleToggleRecord,
     onSelectAll: handleSelectAll,
     onClearAll: handleClearAll,
-    onGenerateManifest: handleGenerateManifest,
-    onBackToSearch: handleBackToSearch,
-    onExport: handleExport,
-    onOpenMirador: handleOpenMirador,
+    onGoToPage2: handleGoToPage2,
   });
 
   appRoot.innerHTML = '';
   appRoot.append(tree);
-
-  // Étape clé: afficher Mirador seulement à l'étape 3 quand la collection existe.
-  if (state.currentStep === 3 && state.collectionManifest) {
-    renderMirador(state.collectionManifest);
-  }
 }
 
 function handleFilterChange(name, values) {
@@ -41,7 +31,6 @@ async function handleSearch() {
     error: null,
     results: [],
     selectedRecordIds: [],
-    collectionManifest: null,
     currentStep: 1,
   });
 
@@ -85,65 +74,18 @@ function handleClearAll() {
   setState({ selectedRecordIds: [] });
 }
 
-async function handleGenerateManifest() {
-  // Étape clé: étape 2 -> étape 3, génération du manifest de collection depuis la sélection utilisateur.
-  setState({ isLoading: true, error: null });
+function handleGoToPage2() {
+  // Étape clé: sérialiser la sélection et naviguer vers la seconde page (étapes 3 & 4).
+  const selectedRecords = state.results.filter((record) =>
+    state.selectedRecordIds.includes(record.recordid)
+  );
 
-  try {
-    const selectedRecords = state.results.filter((record) =>
-      state.selectedRecordIds.includes(record.recordid)
-    );
-
-    const validManifestUrls = await extractValidManifestUrls(selectedRecords);
-    const collectionManifest = buildCollectionManifest(validManifestUrls);
-
-    setState({
-      isLoading: false,
-      currentStep: 3,
-      collectionManifest: validManifestUrls.length ? collectionManifest : null,
-      error:
-        validManifestUrls.length === 0
-          ? 'Aucun manifest IIIF valide trouvé dans la sélection.'
-          : null,
-    });
-  } catch (error) {
-    setState({
-      isLoading: false,
-      error: error.message || 'Impossible de générer le manifest de collection.',
-    });
-  }
-}
-
-function handleBackToSearch() {
-  // Étape clé: revenir à l'étape 1 sans perdre les filtres choisis.
-  setState({ currentStep: 1, collectionManifest: null });
-}
-
-function handleOpenMirador() {
-  // Étape clé: forcer l'ouverture du viewer Mirador si la collection est prête.
-  if (!state.collectionManifest) return;
-  renderMirador(state.collectionManifest);
-}
-
-function handleExport() {
-  // Étape clé: exporter le manifest de collection au format JSON.
-  if (!state.collectionManifest) return;
-
-  const blob = new Blob([JSON.stringify(state.collectionManifest, null, 2)], {
-    type: 'application/json',
-  });
-  const url = URL.createObjectURL(blob);
-
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'joconde-collection-manifest.json';
-  link.click();
-
-  URL.revokeObjectURL(url);
+  sessionStorage.setItem('jocondeSelectedRecords', JSON.stringify(selectedRecords));
+  window.location.href = 'manifest.html';
 }
 
 async function bootstrap() {
-  // Étape clé: initialiser les facettes de recherche au démarrage.
+  // Étape clé: initialiser les facettes de recherche au démarrage de la page 1.
   setState({ isLoading: true, error: null });
 
   try {

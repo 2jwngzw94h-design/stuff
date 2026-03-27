@@ -65,6 +65,10 @@ body {
   min-height: 0;
 }
 
+.layout--two-col {
+  grid-template-columns: minmax(340px, 420px) 1fr;
+}
+
 .panel {
   background: var(--ads-neutral-0);
   border: 1px solid var(--ads-neutral-200);
@@ -246,6 +250,16 @@ body {
   gap: 8px;
 }
 
+.notice-link {
+  margin-left: auto;
+  text-decoration: none;
+  font-size: 16px;
+}
+
+.notice-link:hover {
+  transform: scale(1.08);
+}
+
 .spinner {
   width: 32px;
   height: 32px;
@@ -275,6 +289,17 @@ body {
   font-size: 14px;
 }
 
+.json-preview {
+  margin: 0;
+  overflow: auto;
+  max-height: 60vh;
+  font-size: 12px;
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -282,7 +307,8 @@ body {
 }
 
 @media (max-width: 1200px) {
-  .layout {
+  .layout,
+  .layout--two-col {
     grid-template-columns: 1fr;
   }
 

@@ -11,56 +11,40 @@ export function renderApp({
   onToggleRecord,
   onSelectAll,
   onClearAll,
-  onGenerateManifest,
-  onBackToSearch,
-  onExport,
-  onOpenMirador,
+  onGoToPage2,
 }) {
-  // Étape clé: structure globale de l'application et header.
+  // Étape clé: structure globale page 1 (étape 1 + étape 2 seulement).
   const app = document.createElement('div');
   app.className = 'app';
 
   const header = document.createElement('header');
   header.className = 'header';
 
-  const headerLeft = document.createElement('div');
-  headerLeft.className = 'header__left';
   const title = document.createElement('h1');
-  title.textContent = 'Joconde IIIF Explorer';
+  title.textContent = 'Joconde IIIF Explorer — Page 1';
+
   const counter = document.createElement('span');
   counter.className = 'result-counter';
   counter.textContent = `${state.results.length} résultat(s)`;
-  headerLeft.append(title, counter);
 
-  const headerRight = document.createElement('div');
-  headerRight.className = 'header__right';
-  headerRight.append(
-    Button({
-      label: 'Exporter manifest',
-      disabled: !state.collectionManifest,
-      onClick: onExport,
-    })
-  );
+  const leftHeader = document.createElement('div');
+  leftHeader.className = 'header__left';
+  leftHeader.append(title, counter);
 
-  header.append(headerLeft, headerRight);
+  header.append(leftHeader);
 
   const layout = document.createElement('main');
-  layout.className = 'layout';
+  layout.className = 'layout layout--two-col';
 
-  // Étape clé: panneau gauche = étape 1 (recherche) avec blocs séparés domaine/matériaux.
-  const left = document.createElement('section');
-  left.className = 'panel';
-  left.append(panelHeader('Étape 1 — Rechercher'));
-  const leftContent = document.createElement('div');
-  leftContent.className = 'panel__content';
-  leftContent.append(
-    renderStepper(state.currentStep),
-    MultiSelect({
-      label: 'Lieu de conservation',
-      options: state.options.lieu_conservation,
-      selectedValues: state.filters.lieu_conservation,
-      onChange: (values) => onFilterChange('lieu_conservation', values),
-    }),
+  // Étape clé: panneau recherche (sans lieu de conservation).
+  const searchPanel = document.createElement('section');
+  searchPanel.className = 'panel';
+  searchPanel.append(panelHeader('Étape 1 — Recherche'));
+
+  const searchContent = document.createElement('div');
+  searchContent.className = 'panel__content';
+  searchContent.append(
+    renderStepper(state.currentStep, [1, 2]),
     MultiSelect({
       label: 'Domaine',
       options: state.options.domaine,
@@ -75,30 +59,32 @@ export function renderApp({
     }),
     Button({ label: 'Lancer la recherche', disabled: state.isLoading, onClick: onSearch })
   );
-  left.append(leftContent);
 
-  // Étape clé: panneau central = étape 2 avec animation puis résultats + sélection.
-  const center = document.createElement('section');
-  center.className = 'panel';
-  center.append(panelHeader('Étape 2 — Résultats API'));
-  const centerContent = document.createElement('div');
-  centerContent.className = 'panel__content';
+  searchPanel.append(searchContent);
+
+  // Étape clé: panneau résultats + sélection + navigation vers page 2.
+  const resultPanel = document.createElement('section');
+  resultPanel.className = 'panel';
+  resultPanel.append(panelHeader('Étape 2 — Résultats API & Sélection'));
+
+  const resultContent = document.createElement('div');
+  resultContent.className = 'panel__content';
 
   if (state.isLoading || state.isAnimatingStep) {
     const txt = document.createElement('p');
     txt.className = 'empty';
     txt.textContent = 'Transition vers l’étape 2…';
-    centerContent.append(Spinner(), txt);
+    resultContent.append(Spinner(), txt);
   } else if (state.error) {
     const error = document.createElement('div');
     error.className = 'error';
     error.textContent = state.error;
-    centerContent.append(error);
+    resultContent.append(error);
   } else if (state.currentStep < 2) {
     const hint = document.createElement('p');
     hint.className = 'empty';
     hint.textContent = 'Lancez une recherche pour afficher les œuvres.';
-    centerContent.append(hint);
+    resultContent.append(hint);
   } else {
     const actions = document.createElement('div');
     actions.className = 'result-actions';
@@ -106,9 +92,9 @@ export function renderApp({
       Button({ label: 'Tout sélectionner', onClick: onSelectAll }),
       Button({ label: 'Tout désélectionner', onClick: onClearAll }),
       Button({
-        label: 'Étape 3: Générer la collection',
+        label: 'Aller à la page 2 (étapes 3 & 4)',
         disabled: !state.selectedRecordIds.length,
-        onClick: onGenerateManifest,
+        onClick: onGoToPage2,
       })
     );
 
@@ -124,44 +110,12 @@ export function renderApp({
       })
     );
 
-    centerContent.append(actions, selectedText, List(cards));
+    resultContent.append(actions, selectedText, List(cards));
   }
 
-  center.append(centerContent);
+  resultPanel.append(resultContent);
 
-  // Étape clé: panneau droit = étape 3 génération + ouverture Mirador.
-  const right = document.createElement('section');
-  right.className = 'panel';
-  right.append(panelHeader('Étape 3 — Manifest & Mirador'));
-  const rightContent = document.createElement('div');
-  rightContent.className = 'panel__content';
-
-  const stepHint = document.createElement('p');
-  stepHint.className = 'empty';
-  stepHint.textContent =
-    state.currentStep < 3
-      ? 'Sélectionnez des œuvres puis générez la collection IIIF.'
-      : 'Collection générée. Ouvrez-la dans Mirador.';
-
-  const row = document.createElement('div');
-  row.className = 'result-actions';
-  row.append(
-    Button({ label: 'Retour à l’étape 1', onClick: onBackToSearch }),
-    Button({
-      label: 'Ouvrir dans Mirador',
-      disabled: !state.collectionManifest,
-      onClick: onOpenMirador,
-    })
-  );
-
-  const viewer = document.createElement('div');
-  viewer.id = 'mirador-viewer';
-  viewer.className = 'viewer';
-
-  rightContent.append(renderStepper(state.currentStep), stepHint, row, viewer);
-  right.append(rightContent);
-
-  layout.append(left, center, right);
+  layout.append(searchPanel, resultPanel);
   app.append(header, layout);
   return app;
 }
@@ -176,11 +130,11 @@ function panelHeader(text) {
   return header;
 }
 
-function renderStepper(currentStep) {
+function renderStepper(currentStep, steps) {
   const stepper = document.createElement('div');
   stepper.className = 'stepper';
 
-  [1, 2, 3].forEach((step) => {
+  steps.forEach((step) => {
     const node = document.createElement('span');
     node.className = `stepper__item ${currentStep >= step ? 'is-active' : ''}`;
     node.textContent = `Étape ${step}`;

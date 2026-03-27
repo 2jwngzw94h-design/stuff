@@ -1,4 +1,10 @@
-// Composant micro-card de type cartel musée avec case à cocher par œuvre.
+function buildPopNoticeUrl(record) {
+  const fields = record.fields || {};
+  const ref = fields.ref || fields.reference || record.recordid;
+  return `https://pop.culture.gouv.fr/notice/joconde/${encodeURIComponent(String(ref))}`;
+}
+
+// Composant micro-card de type cartel musée avec case à cocher + lien notice POP.
 export function Card({ record, selected = false, onToggle }) {
   const fields = record.fields || {};
 
@@ -16,7 +22,16 @@ export function Card({ record, selected = false, onToggle }) {
   const title = document.createElement('h3');
   title.textContent = fields.titre || fields.denomination || 'Sans titre';
 
-  head.append(checkbox, title);
+  // Étape clé: icône lien externe vers la notice complète POP.
+  const link = document.createElement('a');
+  link.href = buildPopNoticeUrl(record);
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.className = 'notice-link';
+  link.title = 'Ouvrir la notice complète dans POP';
+  link.textContent = '🔗';
+
+  head.append(checkbox, title, link);
 
   const line1 = document.createElement('p');
   line1.textContent = `${fields.auteur || 'Auteur inconnu'} • ${fields.datation || 'Date inconnue'}`;
