@@ -13,6 +13,8 @@ function rerender() {
     onSelectAll: handleSelectAll,
     onClearAll: handleClearAll,
     onGoToPage2: handleGoToPage2,
+    onPrevPage: handlePrevPage,
+    onNextPage: handleNextPage,
   });
 
   appRoot.innerHTML = '';
@@ -24,7 +26,7 @@ function handleFilterChange(name, values) {
 }
 
 async function handleSearch() {
-  // Étape clé: étape 1 -> animation -> étape 2 avec résultats API.
+  // Étape clé: recherche API (100 max) puis affichage paginé 50/50.
   setState({
     isLoading: true,
     isAnimatingStep: true,
@@ -32,6 +34,7 @@ async function handleSearch() {
     results: [],
     selectedRecordIds: [],
     currentStep: 1,
+    pagination: { ...state.pagination, page: 1 },
   });
 
   try {
@@ -45,6 +48,7 @@ async function handleSearch() {
       isAnimatingStep: false,
       results: records,
       selectedRecordIds: records.map((r) => r.recordid),
+      pagination: { ...state.pagination, page: 1 },
     });
   } catch (error) {
     setState({
@@ -56,7 +60,7 @@ async function handleSearch() {
 }
 
 function handleToggleRecord(recordId, checked) {
-  // Étape clé: sélection fine œuvre par œuvre dans la liste étape 2.
+  // Étape clé: sélection fine œuvre par œuvre dans la liste.
   const next = checked
     ? Array.from(new Set([...state.selectedRecordIds, recordId]))
     : state.selectedRecordIds.filter((id) => id !== recordId);
@@ -72,6 +76,19 @@ function handleSelectAll() {
 function handleClearAll() {
   // Étape clé: action globale "tout désélectionner".
   setState({ selectedRecordIds: [] });
+}
+
+function handlePrevPage() {
+  // Étape clé: pagination - page précédente.
+  const nextPage = Math.max(1, state.pagination.page - 1);
+  setState({ pagination: { ...state.pagination, page: nextPage } });
+}
+
+function handleNextPage() {
+  // Étape clé: pagination - page suivante.
+  const totalPages = Math.max(1, Math.ceil(state.results.length / state.pagination.pageSize));
+  const nextPage = Math.min(totalPages, state.pagination.page + 1);
+  setState({ pagination: { ...state.pagination, page: nextPage } });
 }
 
 function handleGoToPage2() {

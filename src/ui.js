@@ -12,6 +12,8 @@ export function renderApp({
   onSelectAll,
   onClearAll,
   onGoToPage2,
+  onPrevPage,
+  onNextPage,
 }) {
   // Étape clé: structure globale page 1 (étape 1 + étape 2 seulement).
   const app = document.createElement('div');
@@ -25,7 +27,7 @@ export function renderApp({
 
   const counter = document.createElement('span');
   counter.className = 'result-counter';
-  counter.textContent = `${state.results.length} résultat(s)`;
+  counter.textContent = `${state.results.length} résultat(s) avec image`;
 
   const leftHeader = document.createElement('div');
   leftHeader.className = 'header__left';
@@ -34,17 +36,16 @@ export function renderApp({
   header.append(leftHeader);
 
   const layout = document.createElement('main');
-  layout.className = 'layout layout--two-col';
+  layout.className = 'layout layout--two-col layout--fixed-height';
 
-  // Étape clé: panneau recherche (sans lieu de conservation).
+  // Étape clé: panneau recherche (sans stepper pour gagner de la hauteur).
   const searchPanel = document.createElement('section');
   searchPanel.className = 'panel';
-  searchPanel.append(panelHeader('Étape 1 — Recherche'));
+  searchPanel.append(panelHeader('Recherche'));
 
   const searchContent = document.createElement('div');
-  searchContent.className = 'panel__content';
+  searchContent.className = 'panel__content panel__content--scroll';
   searchContent.append(
-    renderStepper(state.currentStep, [1, 2]),
     MultiSelect({
       label: 'Domaine',
       options: state.options.domaine,
@@ -62,18 +63,18 @@ export function renderApp({
 
   searchPanel.append(searchContent);
 
-  // Étape clé: panneau résultats + sélection + navigation vers page 2.
+  // Étape clé: panneau résultats + sélection + pagination 50/100.
   const resultPanel = document.createElement('section');
   resultPanel.className = 'panel';
-  resultPanel.append(panelHeader('Étape 2 — Résultats API & Sélection'));
+  resultPanel.append(panelHeader('Résultats API & Sélection'));
 
   const resultContent = document.createElement('div');
-  resultContent.className = 'panel__content';
+  resultContent.className = 'panel__content panel__content--scroll';
 
   if (state.isLoading || state.isAnimatingStep) {
     const txt = document.createElement('p');
     txt.className = 'empty';
-    txt.textContent = 'Transition vers l’étape 2…';
+    txt.textContent = 'Transition vers les résultats…';
     resultContent.append(Spinner(), txt);
   } else if (state.error) {
     const error = document.createElement('div');
@@ -86,6 +87,11 @@ export function renderApp({
     hint.textContent = 'Lancez une recherche pour afficher les œuvres.';
     resultContent.append(hint);
   } else {
+    const start = (state.pagination.page - 1) * state.pagination.pageSize;
+    const end = start + state.pagination.pageSize;
+    const pageRecords = state.results.slice(start, end);
+    const totalPages = Math.max(1, Math.ceil(state.results.length / state.pagination.pageSize));
+
     const actions = document.createElement('div');
     actions.className = 'result-actions';
     actions.append(
@@ -102,7 +108,22 @@ export function renderApp({
     selectedText.className = 'empty';
     selectedText.textContent = `${state.selectedRecordIds.length} œuvre(s) sélectionnée(s)`;
 
-    const cards = state.results.map((record) =>
+    const pager = document.createElement('div');
+    pager.className = 'result-actions';
+    pager.append(
+      Button({ label: 'Précédent', disabled: state.pagination.page <= 1, onClick: onPrevPage }),
+      Button({
+        label: 'Suivant',
+        disabled: state.pagination.page >= totalPages,
+        onClick: onNextPage,
+      })
+    );
+
+    const pagerText = document.createElement('p');
+    pagerText.className = 'empty';
+    pagerText.textContent = `Page ${state.pagination.page} / ${totalPages} (50 résultats par page)`;
+
+    const cards = pageRecords.map((record) =>
       Card({
         record,
         selected: state.selectedRecordIds.includes(record.recordid),
@@ -110,7 +131,7 @@ export function renderApp({
       })
     );
 
-    resultContent.append(actions, selectedText, List(cards));
+    resultContent.append(actions, selectedText, pager, pagerText, List(cards));
   }
 
   resultPanel.append(resultContent);
@@ -128,18 +149,4 @@ function panelHeader(text) {
   title.textContent = text;
   header.append(title);
   return header;
-}
-
-function renderStepper(currentStep, steps) {
-  const stepper = document.createElement('div');
-  stepper.className = 'stepper';
-
-  steps.forEach((step) => {
-    const node = document.createElement('span');
-    node.className = `stepper__item ${currentStep >= step ? 'is-active' : ''}`;
-    node.textContent = `Étape ${step}`;
-    stepper.append(node);
-  });
-
-  return stepper;
 }

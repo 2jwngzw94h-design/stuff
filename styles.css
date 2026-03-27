@@ -69,6 +69,11 @@ body {
   grid-template-columns: minmax(340px, 420px) 1fr;
 }
 
+/* Étape clé: garder les deux blocs de la page 1 à hauteur fixe et scrollables. */
+.layout--fixed-height {
+  height: calc(100vh - 64px);
+}
+
 .panel {
   background: var(--ads-neutral-0);
   border: 1px solid var(--ads-neutral-200);
@@ -97,23 +102,8 @@ body {
   gap: 16px;
 }
 
-.stepper {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.stepper__item {
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: var(--ads-neutral-100);
-  color: var(--ads-neutral-700);
-}
-
-.stepper__item.is-active {
-  background: #deebff;
-  color: var(--ads-blue-800);
+.panel__content--scroll {
+  overflow-y: auto;
 }
 
 .filter-group {
@@ -310,6 +300,14 @@ body {
   .layout,
   .layout--two-col {
     grid-template-columns: 1fr;
+  }
+
+  .layout--fixed-height {
+    height: auto;
+  }
+
+  .panel {
+    min-height: 420px;
   }
 
   .viewer {

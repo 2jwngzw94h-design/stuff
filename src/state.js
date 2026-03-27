@@ -12,6 +12,10 @@ export const state = {
   },
   results: [],
   selectedRecordIds: [],
+  pagination: {
+    page: 1,
+    pageSize: 50,
+  },
   isLoading: false,
   error: null,
 };

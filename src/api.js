@@ -1,14 +1,20 @@
 const API_BASE = 'https://data.culture.gouv.fr/api/records/1.0/search/';
 const DATASET = 'base-joconde-extrait';
-const MAX_ROWS = 50;
+const MAX_ROWS = 100;
+
+function hasPresenceImage(record) {
+  const value = record?.fields?.presence_image;
+  return value === true || value === 'true' || value === 1 || value === '1';
+}
 
 function buildQuery(filters) {
-  // Étape clé: construire une requête refine.* uniquement avec domaine + matériaux/techniques.
-  // Étape clé: construire une requête refine.* avec des blocs distincts domaine et matériaux/techniques.
+  // Étape clé: construire une requête refine.* avec présence_image=true et 100 résultats max.
   const params = new URLSearchParams({
     dataset: DATASET,
     rows: String(MAX_ROWS),
   });
+
+  params.append('refine.presence_image', 'true');
 
   (filters.domaine || []).forEach((value) => {
     params.append('refine.domaine', value);
@@ -27,6 +33,8 @@ export async function fetchFacetOptions() {
     dataset: DATASET,
     rows: '0',
   });
+
+  params.append('refine.presence_image', 'true');
 
   ['domaine', 'materiaux_techniques'].forEach((field) => {
     params.append('facet', field);
@@ -48,7 +56,7 @@ export async function fetchFacetOptions() {
 }
 
 export async function searchWorks(filters) {
-  // Étape clé: appeler l'API Joconde avec les refinements saisis à l'étape 1.
+  // Étape clé: appeler l'API Joconde avec présence_image=true, puis filtrage de sécurité côté client.
   const query = buildQuery(filters);
   const response = await fetch(`${API_BASE}?${query.toString()}`);
 
@@ -57,5 +65,5 @@ export async function searchWorks(filters) {
   }
 
   const data = await response.json();
-  return data.records || [];
+  return (data.records || []).filter(hasPresenceImage).slice(0, MAX_ROWS);
 }
