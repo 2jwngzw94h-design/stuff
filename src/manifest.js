@@ -14,10 +14,12 @@ function getRecordLabel(record) {
 }
 
 function buildManifestUrlFromNoticeId(noticeId) {
-  // Étape clé: construire l'URL de manifest IIIF à partir de l'identifiant Joconde.
-  return `https://api-popcorn.stg.cloud.culture.fr/notices/joconde/${encodeURIComponent(
-    noticeId
-  )}/iiif/manifest`;
+  // Étape clé: pattern demandé pour la prod POP, avec variante STG disponible.
+  const prodBase = 'https://api.pop.culture.gouv.fr';
+  const stgBase = 'https://api-popcorn.stg.cloud.culture.fr';
+  const base = window.location.hostname.includes('stg') ? stgBase : prodBase;
+
+  return `${base}/notices/joconde/${encodeURIComponent(noticeId)}/iiif/manifest`;
 }
 
 export function buildCollectionItemsFromRecords(records) {

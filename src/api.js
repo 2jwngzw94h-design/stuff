@@ -2,16 +2,23 @@ const API_BASE = 'https://data.culture.gouv.fr/api/records/1.0/search/';
 const DATASET = 'base-joconde-extrait';
 const MAX_ROWS = 100;
 
+function normalizePresenceValue(value) {
+  if (value === null || value === undefined) return '';
+  return String(value).trim().toUpperCase();
+}
+
 export function recordHasImage(record) {
   const fields = record?.fields || {};
-  const presence = fields.presence_image;
+  const raw = fields.Presence_image ?? fields.presence_image;
+  const normalized = normalizePresenceValue(raw);
 
-  // Étape clé: détection tolérante de la présence d'image selon différentes formes de données.
-  if (presence === true || presence === 'true' || presence === 1 || presence === '1') {
-    return true;
-  }
+  // Étape clé: règle métier stricte demandée — TRUE = image, FALSE = pas d'image.
+  if (raw === true || raw === 1) return true;
+  if (normalized === 'TRUE') return true;
+  if (raw === false || raw === 0) return false;
+  if (normalized === 'FALSE') return false;
 
-  return Boolean(fields.image || fields.images || fields.url_image || fields.representation);
+  return false;
 }
 
 function buildQuery(filters) {
