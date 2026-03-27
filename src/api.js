@@ -2,38 +2,30 @@ const API_BASE = 'https://data.culture.gouv.fr/api/records/1.0/search/';
 const DATASET = 'base-joconde-extrait';
 const MAX_ROWS = 50;
 
-function buildBaseParams() {
-  return new URLSearchParams({
+function buildQuery(filters) {
+  // Étape clé: construire une requête refine.* avec des blocs distincts domaine et matériaux/techniques.
+  const params = new URLSearchParams({
     dataset: DATASET,
     rows: String(MAX_ROWS),
   });
-}
 
-function applyLieuFilters(params, filters) {
   (filters.lieu_conservation || []).forEach((value) => {
     params.append('refine.lieu_conservation', value);
   });
-}
 
-function mergeUniqueRecords(recordLists) {
-  const byId = new Map();
-  recordLists.flat().forEach((record) => {
-    byId.set(record.recordid, record);
+  (filters.domaine || []).forEach((value) => {
+    params.append('refine.domaine', value);
   });
-  return Array.from(byId.values()).slice(0, MAX_ROWS);
-}
 
-async function fetchRecords(params) {
-  const response = await fetch(`${API_BASE}?${params.toString()}`);
-  if (!response.ok) {
-    throw new Error(`Erreur API Joconde (${response.status}).`);
-  }
-  const data = await response.json();
-  return data.records || [];
+  (filters.materiaux_techniques || []).forEach((value) => {
+    params.append('refine.materiaux_techniques', value);
+  });
+
+  return params;
 }
 
 export async function fetchFacetOptions() {
-  // Étape clé: charger les facettes puis fusionner domaine + matériaux/techniques en une seule option UI.
+  // Étape clé: charger les 3 facettes nécessaires au formulaire de recherche étape 1.
   const params = new URLSearchParams({
     dataset: DATASET,
     rows: '0',
@@ -51,41 +43,24 @@ export async function fetchFacetOptions() {
   const data = await response.json();
   const facets = data.facet_groups || [];
 
-  const domaines = facets.find((f) => f.name === 'domaine')?.facets?.map((x) => x.name) || [];
-  const materiaux =
-    facets.find((f) => f.name === 'materiaux_techniques')?.facets?.map((x) => x.name) || [];
-
   return {
     lieu_conservation:
       facets.find((f) => f.name === 'lieu_conservation')?.facets?.map((x) => x.name) || [],
-    domaine_materiaux: Array.from(new Set([...domaines, ...materiaux])).sort((a, b) =>
-      a.localeCompare(b, 'fr')
-    ),
+    domaine: facets.find((f) => f.name === 'domaine')?.facets?.map((x) => x.name) || [],
+    materiaux_techniques:
+      facets.find((f) => f.name === 'materiaux_techniques')?.facets?.map((x) => x.name) || [],
   };
 }
 
 export async function searchWorks(filters) {
-  // Étape clé: rechercher dans les champs domaine ET matériaux/techniques via 2 requêtes puis fusion.
-  const selectedCombined = filters.domaine_materiaux || [];
+  // Étape clé: appeler l'API Joconde avec les refinements saisis à l'étape 1.
+  const query = buildQuery(filters);
+  const response = await fetch(`${API_BASE}?${query.toString()}`);
 
-  if (!selectedCombined.length) {
-    const params = buildBaseParams();
-    applyLieuFilters(params, filters);
-    return fetchRecords(params);
+  if (!response.ok) {
+    throw new Error(`Erreur API Joconde (${response.status}).`);
   }
 
-  const domaineParams = buildBaseParams();
-  applyLieuFilters(domaineParams, filters);
-  selectedCombined.forEach((value) => domaineParams.append('refine.domaine', value));
-
-  const materiauxParams = buildBaseParams();
-  applyLieuFilters(materiauxParams, filters);
-  selectedCombined.forEach((value) => materiauxParams.append('refine.materiaux_techniques', value));
-
-  const [domainRecords, materiauxRecords] = await Promise.all([
-    fetchRecords(domaineParams),
-    fetchRecords(materiauxParams),
-  ]);
-
-  return mergeUniqueRecords([domainRecords, materiauxRecords]);
+  const data = await response.json();
+  return data.records || [];
 }

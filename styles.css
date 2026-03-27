@@ -59,7 +59,7 @@ body {
 
 .layout {
   display: grid;
-  grid-template-columns: 320px minmax(320px, 1fr) minmax(400px, 1fr);
+  grid-template-columns: 320px minmax(360px, 1fr) minmax(420px, 1fr);
   gap: 16px;
   padding: 16px;
   min-height: 0;
@@ -91,6 +91,25 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.stepper {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.stepper__item {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--ads-neutral-100);
+  color: var(--ads-neutral-700);
+}
+
+.stepper__item.is-active {
+  background: #deebff;
+  color: var(--ads-blue-800);
 }
 
 .filter-group {
@@ -128,7 +147,7 @@ body {
 }
 
 .multiselect__options {
-  max-height: 180px;
+  max-height: 160px;
   overflow-y: auto;
   padding: 8px;
   display: flex;
@@ -188,12 +207,18 @@ body {
   cursor: not-allowed;
 }
 
+.result-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .results-list {
   overflow-y: auto;
   padding-right: 8px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .card {
@@ -203,15 +228,22 @@ body {
   background: var(--ads-neutral-0);
 }
 
-.card h3 {
-  margin: 0 0 8px;
-  font-size: 15px;
+.card--micro h3 {
+  margin: 0;
+  font-size: 14px;
 }
 
-.card p {
-  margin: 0;
-  font-size: 13px;
+.card--micro p {
+  margin: 4px 0 0;
+  font-size: 12px;
   color: var(--ads-neutral-700);
+  line-height: 1.35;
+}
+
+.card__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .spinner {
@@ -235,7 +267,7 @@ body {
 
 .viewer {
   height: 100%;
-  min-height: 500px;
+  min-height: 480px;
 }
 
 .empty {
@@ -251,12 +283,10 @@ body {
 
 @media (max-width: 1200px) {
   .layout {
-    grid-template-columns: 280px 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-columns: 1fr;
   }
 
-  .layout .panel:last-child {
-    grid-column: 1 / -1;
-    min-height: 540px;
+  .viewer {
+    min-height: 360px;
   }
 }

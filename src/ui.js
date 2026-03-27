@@ -8,9 +8,15 @@ export function renderApp({
   state,
   onFilterChange,
   onSearch,
+  onToggleRecord,
+  onSelectAll,
+  onClearAll,
+  onGenerateManifest,
+  onBackToSearch,
   onExport,
+  onOpenMirador,
 }) {
-  // Étape clé: rendu global layout + zones (header, sidebar, résultats, viewer).
+  // Étape clé: structure globale de l'application et header.
   const app = document.createElement('div');
   app.className = 'app';
 
@@ -21,11 +27,9 @@ export function renderApp({
   headerLeft.className = 'header__left';
   const title = document.createElement('h1');
   title.textContent = 'Joconde IIIF Explorer';
-
   const counter = document.createElement('span');
   counter.className = 'result-counter';
   counter.textContent = `${state.results.length} résultat(s)`;
-
   headerLeft.append(title, counter);
 
   const headerRight = document.createElement('div');
@@ -43,15 +47,14 @@ export function renderApp({
   const layout = document.createElement('main');
   layout.className = 'layout';
 
-  const filterPanel = document.createElement('section');
-  filterPanel.className = 'panel';
-  filterPanel.append(panelHeader('Filtres'));
-
-  const filterContent = document.createElement('div');
-  filterContent.className = 'panel__content';
-
-  // Étape clé: simplifier la recherche avec 2 filtres uniquement (lieu + domaine/matériaux).
-  filterContent.append(
+  // Étape clé: panneau gauche = étape 1 (recherche) avec blocs séparés domaine/matériaux.
+  const left = document.createElement('section');
+  left.className = 'panel';
+  left.append(panelHeader('Étape 1 — Rechercher'));
+  const leftContent = document.createElement('div');
+  leftContent.className = 'panel__content';
+  leftContent.append(
+    renderStepper(state.currentStep),
     MultiSelect({
       label: 'Lieu de conservation',
       options: state.options.lieu_conservation,
@@ -59,58 +62,107 @@ export function renderApp({
       onChange: (values) => onFilterChange('lieu_conservation', values),
     }),
     MultiSelect({
-      label: 'Domaine + matériaux / techniques',
-      options: state.options.domaine_materiaux,
-      selectedValues: state.filters.domaine_materiaux,
-      onChange: (values) => onFilterChange('domaine_materiaux', values),
+      label: 'Domaine',
+      options: state.options.domaine,
+      selectedValues: state.filters.domaine,
+      onChange: (values) => onFilterChange('domaine', values),
     }),
-    Button({ label: 'Rechercher', disabled: state.isLoading, onClick: onSearch })
+    MultiSelect({
+      label: 'Matériaux / techniques',
+      options: state.options.materiaux_techniques,
+      selectedValues: state.filters.materiaux_techniques,
+      onChange: (values) => onFilterChange('materiaux_techniques', values),
+    }),
+    Button({ label: 'Lancer la recherche', disabled: state.isLoading, onClick: onSearch })
   );
+  left.append(leftContent);
 
-  filterPanel.append(filterContent);
+  // Étape clé: panneau central = étape 2 avec animation puis résultats + sélection.
+  const center = document.createElement('section');
+  center.className = 'panel';
+  center.append(panelHeader('Étape 2 — Résultats API'));
+  const centerContent = document.createElement('div');
+  centerContent.className = 'panel__content';
 
-  const resultsPanel = document.createElement('section');
-  resultsPanel.className = 'panel';
-  resultsPanel.append(panelHeader('Résultats'));
-
-  const resultsContent = document.createElement('div');
-  resultsContent.className = 'panel__content';
-
-  // Étape clé: rendu conditionnel (loader, erreur, liste, état vide).
-  if (state.isLoading) {
-    resultsContent.append(Spinner());
+  if (state.isLoading || state.isAnimatingStep) {
+    const txt = document.createElement('p');
+    txt.className = 'empty';
+    txt.textContent = 'Transition vers l’étape 2…';
+    centerContent.append(Spinner(), txt);
   } else if (state.error) {
     const error = document.createElement('div');
     error.className = 'error';
     error.textContent = state.error;
-    resultsContent.append(error);
-  } else if (!state.results.length) {
-    const empty = document.createElement('p');
-    empty.className = 'empty';
-    empty.textContent = 'Aucun résultat. Sélectionnez des filtres puis lancez une recherche.';
-    resultsContent.append(empty);
+    centerContent.append(error);
+  } else if (state.currentStep < 2) {
+    const hint = document.createElement('p');
+    hint.className = 'empty';
+    hint.textContent = 'Lancez une recherche pour afficher les œuvres.';
+    centerContent.append(hint);
   } else {
-    const cards = state.results.map((record) => Card(record));
-    resultsContent.append(List(cards));
+    const actions = document.createElement('div');
+    actions.className = 'result-actions';
+    actions.append(
+      Button({ label: 'Tout sélectionner', onClick: onSelectAll }),
+      Button({ label: 'Tout désélectionner', onClick: onClearAll }),
+      Button({
+        label: 'Étape 3: Générer la collection',
+        disabled: !state.selectedRecordIds.length,
+        onClick: onGenerateManifest,
+      })
+    );
+
+    const selectedText = document.createElement('p');
+    selectedText.className = 'empty';
+    selectedText.textContent = `${state.selectedRecordIds.length} œuvre(s) sélectionnée(s)`;
+
+    const cards = state.results.map((record) =>
+      Card({
+        record,
+        selected: state.selectedRecordIds.includes(record.recordid),
+        onToggle: onToggleRecord,
+      })
+    );
+
+    centerContent.append(actions, selectedText, List(cards));
   }
 
-  resultsPanel.append(resultsContent);
+  center.append(centerContent);
 
-  const viewerPanel = document.createElement('section');
-  viewerPanel.className = 'panel';
-  viewerPanel.append(panelHeader('Mirador'));
+  // Étape clé: panneau droit = étape 3 génération + ouverture Mirador.
+  const right = document.createElement('section');
+  right.className = 'panel';
+  right.append(panelHeader('Étape 3 — Manifest & Mirador'));
+  const rightContent = document.createElement('div');
+  rightContent.className = 'panel__content';
 
-  const viewerContent = document.createElement('div');
-  viewerContent.className = 'panel__content';
+  const stepHint = document.createElement('p');
+  stepHint.className = 'empty';
+  stepHint.textContent =
+    state.currentStep < 3
+      ? 'Sélectionnez des œuvres puis générez la collection IIIF.'
+      : 'Collection générée. Ouvrez-la dans Mirador.';
+
+  const row = document.createElement('div');
+  row.className = 'result-actions';
+  row.append(
+    Button({ label: 'Retour à l’étape 1', onClick: onBackToSearch }),
+    Button({
+      label: 'Ouvrir dans Mirador',
+      disabled: !state.collectionManifest,
+      onClick: onOpenMirador,
+    })
+  );
+
   const viewer = document.createElement('div');
   viewer.id = 'mirador-viewer';
   viewer.className = 'viewer';
-  viewerContent.append(viewer);
-  viewerPanel.append(viewerContent);
 
-  layout.append(filterPanel, resultsPanel, viewerPanel);
+  rightContent.append(renderStepper(state.currentStep), stepHint, row, viewer);
+  right.append(rightContent);
+
+  layout.append(left, center, right);
   app.append(header, layout);
-
   return app;
 }
 
@@ -122,4 +174,18 @@ function panelHeader(text) {
   title.textContent = text;
   header.append(title);
   return header;
+}
+
+function renderStepper(currentStep) {
+  const stepper = document.createElement('div');
+  stepper.className = 'stepper';
+
+  [1, 2, 3].forEach((step) => {
+    const node = document.createElement('span');
+    node.className = `stepper__item ${currentStep >= step ? 'is-active' : ''}`;
+    node.textContent = `Étape ${step}`;
+    stepper.append(node);
+  });
+
+  return stepper;
 }
