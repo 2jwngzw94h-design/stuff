@@ -5,6 +5,7 @@ export const state = {
   filters: {
     domaine: [],
     materiaux_techniques: [],
+    imageOnly: false,
   },
   options: {
     domaine: [],

@@ -240,6 +240,33 @@ body {
   gap: 8px;
 }
 
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--ads-neutral-700);
+}
+
+.image-badge {
+  font-size: 11px;
+  border-radius: 999px;
+  padding: 2px 8px;
+  margin-left: 8px;
+  white-space: nowrap;
+}
+
+.image-badge.has-image {
+  color: #206a00;
+  background: #dcfff1;
+}
+
+.image-badge.no-image {
+  color: #8f1f14;
+  background: #ffebe6;
+}
+
 .notice-link {
   margin-left: auto;
   text-decoration: none;

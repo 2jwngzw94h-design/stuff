@@ -7,10 +7,12 @@ import { Spinner } from './components/Spinner.js';
 export function renderApp({
   state,
   onFilterChange,
+  onToggleImageOnly,
   onSearch,
   onToggleRecord,
   onSelectAll,
   onClearAll,
+  onSelectOnlyWithImage,
   onGoToPage2,
   onPrevPage,
   onNextPage,
@@ -27,7 +29,7 @@ export function renderApp({
 
   const counter = document.createElement('span');
   counter.className = 'result-counter';
-  counter.textContent = `${state.results.length} résultat(s) avec image`;
+  counter.textContent = `${state.results.length} résultat(s)`;
 
   const leftHeader = document.createElement('div');
   leftHeader.className = 'header__left';
@@ -38,13 +40,24 @@ export function renderApp({
   const layout = document.createElement('main');
   layout.className = 'layout layout--two-col layout--fixed-height';
 
-  // Étape clé: panneau recherche (sans stepper pour gagner de la hauteur).
+  // Étape clé: panneau recherche (avec option "uniquement notices avec image").
   const searchPanel = document.createElement('section');
   searchPanel.className = 'panel';
   searchPanel.append(panelHeader('Recherche'));
 
   const searchContent = document.createElement('div');
   searchContent.className = 'panel__content panel__content--scroll';
+
+  const imageOnlyRow = document.createElement('label');
+  imageOnlyRow.className = 'toggle-row';
+  const imageOnlyInput = document.createElement('input');
+  imageOnlyInput.type = 'checkbox';
+  imageOnlyInput.checked = state.filters.imageOnly;
+  imageOnlyInput.addEventListener('change', (event) => onToggleImageOnly(event.target.checked));
+  const imageOnlyText = document.createElement('span');
+  imageOnlyText.textContent = 'Uniquement les notices avec image';
+  imageOnlyRow.append(imageOnlyInput, imageOnlyText);
+
   searchContent.append(
     MultiSelect({
       label: 'Domaine',
@@ -58,6 +71,7 @@ export function renderApp({
       selectedValues: state.filters.materiaux_techniques,
       onChange: (values) => onFilterChange('materiaux_techniques', values),
     }),
+    imageOnlyRow,
     Button({ label: 'Lancer la recherche', disabled: state.isLoading, onClick: onSearch })
   );
 
@@ -97,6 +111,7 @@ export function renderApp({
     actions.append(
       Button({ label: 'Tout sélectionner', onClick: onSelectAll }),
       Button({ label: 'Tout désélectionner', onClick: onClearAll }),
+      Button({ label: 'Sélectionner seulement avec image', onClick: onSelectOnlyWithImage }),
       Button({
         label: 'Aller à la page 2 (étapes 3 & 4)',
         disabled: !state.selectedRecordIds.length,

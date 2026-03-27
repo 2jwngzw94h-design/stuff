@@ -1,3 +1,5 @@
+import { recordHasImage } from '../api.js';
+
 function buildPopNoticeUrl(record) {
   const fields = record.fields || {};
   const ref = fields.ref || fields.reference || record.recordid;
@@ -22,6 +24,11 @@ export function Card({ record, selected = false, onToggle }) {
   const title = document.createElement('h3');
   title.textContent = fields.titre || fields.denomination || 'Sans titre';
 
+  // Étape clé: badge visuel indiquant si la notice possède une image.
+  const imageBadge = document.createElement('span');
+  imageBadge.className = `image-badge ${recordHasImage(record) ? 'has-image' : 'no-image'}`;
+  imageBadge.textContent = recordHasImage(record) ? 'Image: oui' : 'Image: non';
+
   // Étape clé: icône lien externe vers la notice complète POP.
   const link = document.createElement('a');
   link.href = buildPopNoticeUrl(record);
@@ -31,7 +38,7 @@ export function Card({ record, selected = false, onToggle }) {
   link.title = 'Ouvrir la notice complète dans POP';
   link.textContent = '🔗';
 
-  head.append(checkbox, title, link);
+  head.append(checkbox, title, imageBadge, link);
 
   const line1 = document.createElement('p');
   line1.textContent = `${fields.auteur || 'Auteur inconnu'} • ${fields.datation || 'Date inconnue'}`;

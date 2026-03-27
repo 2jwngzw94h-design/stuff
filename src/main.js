@@ -1,4 +1,4 @@
-import { fetchFacetOptions, searchWorks } from './api.js';
+import { fetchFacetOptions, searchWorks, recordHasImage } from './api.js';
 import { state, setFilter, setState, subscribe } from './state.js';
 import { renderApp } from './ui.js';
 
@@ -8,10 +8,12 @@ function rerender() {
   const tree = renderApp({
     state,
     onFilterChange: handleFilterChange,
+    onToggleImageOnly: handleToggleImageOnly,
     onSearch: handleSearch,
     onToggleRecord: handleToggleRecord,
     onSelectAll: handleSelectAll,
     onClearAll: handleClearAll,
+    onSelectOnlyWithImage: handleSelectOnlyWithImage,
     onGoToPage2: handleGoToPage2,
     onPrevPage: handlePrevPage,
     onNextPage: handleNextPage,
@@ -25,8 +27,13 @@ function handleFilterChange(name, values) {
   setFilter(name, values);
 }
 
+function handleToggleImageOnly(checked) {
+  // Étape clé: activer/désactiver l'option de recherche "image uniquement".
+  setFilter('imageOnly', checked);
+}
+
 async function handleSearch() {
-  // Étape clé: recherche API (100 max) puis affichage paginé 50/50.
+  // Étape clé: recherche API (comportement initial retrouvé) puis affichage paginé 50/50.
   setState({
     isLoading: true,
     isAnimatingStep: true,
@@ -40,7 +47,7 @@ async function handleSearch() {
   try {
     const records = await searchWorks(state.filters);
 
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    await new Promise((resolve) => setTimeout(resolve, 400));
 
     setState({
       currentStep: 2,
@@ -76,6 +83,12 @@ function handleSelectAll() {
 function handleClearAll() {
   // Étape clé: action globale "tout désélectionner".
   setState({ selectedRecordIds: [] });
+}
+
+function handleSelectOnlyWithImage() {
+  // Étape clé: sélectionner uniquement les notices disposant d'une image.
+  const ids = state.results.filter(recordHasImage).map((record) => record.recordid);
+  setState({ selectedRecordIds: ids });
 }
 
 function handlePrevPage() {
