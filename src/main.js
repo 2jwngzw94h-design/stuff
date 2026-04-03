@@ -1,6 +1,4 @@
-import { fetchFacetOptions, searchWorks, recordHasImage } from './api.js';
-import { state, setFilter, setState, subscribe } from './state.js';
-import { renderApp } from './ui.js';
+
 
 const appRoot = document.getElementById('app');
 function rerender() {
